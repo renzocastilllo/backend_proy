@@ -12,7 +12,7 @@ const reservas = require('./api/reservas')
 const app = express()
 const port = 3080
 
-app.use(express.static(path.join(__dirname, './static')));
+app.use(express.static(path.join(__dirname, './tabla')));
 app.use(bodyParser.json());
 
 // use
@@ -23,7 +23,7 @@ app.use('/api/reservas',reservas)
 //-----
 
 app.get('/', (req,res) => {
-  res.sendFile(path.join(__dirname, './static/index.html'));
+  res.sendFile(path.join(__dirname, './tabla/index.html'));
 });
 
 app.listen(port, () => {
