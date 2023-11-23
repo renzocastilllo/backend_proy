@@ -62,7 +62,7 @@ ruta.get('/busqueda', async (req, res) => {
             //item.reservado = item.reservado.sort((a, b) => b.id - a.id);
             item.reservado.forEach(i => {
                 console.log(" ", i.id, i.fecha_final)
-                if (i.fecha_final > hoy) {
+                if (new Date(i.fecha_final) > hoy) {
                     disponibilidad = false
                 }
             })
@@ -95,13 +95,33 @@ ruta.get('/busqueda', async (req, res) => {
 
 ruta.get('/leer', async (req, res) => {
     let id = req.query.id
-    let rpta = await db.libro.findByPk(id, {
+    console.log(id)
+    let libro = await db.libro.findByPk(id, {
         include : {
             model: db.reserva,
-            as: 'reservado'
+            as: 'reservado',
+            attributes: ['id', 'fecha_final'],
+            order: [['id', 'DESC']]
         }
     })
+    // Calcular si el libro esta disponible o no
+    let rpta = {}
+    let hoy = new Date(obtenerFechaActual())
+        let disponibilidad = true;
+        if (libro.reservado) {
+            
+            libro.reservado.forEach(i => {
+                console.log(" ", i.id, i.fecha_final)
+                if (new Date(i.fecha_final) > hoy) {
+                    disponibilidad = false
+                }
+            })
+            console.log("   Disponible: ", disponibilidad)
+        }
+        rpta = ({ ...libro.get({ plain: true }), disponible: disponibilidad })
+    
     res.status(200).json(rpta);
+
 });
 
 ruta.post('/agregar', async (req, res) => {
@@ -132,6 +152,36 @@ ruta.put('/modificar', async (req, res) => {
     return res.json({ mensaje: 'Libro modificado correctamente' });
 
 });
+
+ruta.get('/MasPedidos', async (req, res)=>{
+    let obj = req.query
+    let page = obj.page
+    let pageSize = 2
+    let start= (page -1)* pageSize 
+    let end = start + pageSize
+
+    let libros = await db.libro.findAll({
+        where:{
+            contador:{ [Op.gt]: 0 }
+        },
+        order :[['contador', 'DESC']],
+    })
+
+    const totalItems = libros.length
+    const totalPages = Math.ceil(totalItems/pageSize)
+    let itemL = libros
+    let itemsAPaginar = itemL.slice(start,end)
+    itemsAPaginar = JSON.stringify(itemsAPaginar)
+  
+    return res.status(200).json( {
+          page,
+          totalPages,
+          pageSize,
+          totalItems,
+          items: JSON.parse(itemsAPaginar)
+          }
+    )
+})
 
 function obtenerFechaActual() {
     const hoy = new Date();

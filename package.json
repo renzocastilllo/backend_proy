@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend proyecto grupo 5",
   "main": "server.js",
   "scripts": {
     "dev": "nodemon server.js",
