@@ -17,36 +17,36 @@ module.exports = {
     [
       {
         tipo: "admin",
-        nombres: "soyadmin",
+        nombres: "admin",
         apellidos: "administrador",
         tipo_documento: "dni",
         nro_documento: "77777777",
-        correo: "admin@ulima.edu.pe",
+        correo: "admin",
         contrasenha: "admin",
-        foto: "/Juan.png",
+        foto: "/raul.png",
         idioma: "Ingles",
         prefijo: "Sr",
         color: "#7785bb"
       },
       {
         tipo: "user",
-        nombres: "Juan Carlos",
-        apellidos: "Bodoque",
+        nombres: "Lionel Andres",
+        apellidos: "Messi",
         tipo_documento: "dni",
         nro_documento: "77777777",
         correo: "user@ulima.edu.pe",
         contrasenha: "user",
-        foto: "/juancarlos.jpg"
+        foto: "/messi.jpg"
       },
       {
         tipo: "user",
-        nombres: "Tulio",
-        apellidos: "Trivino",
+        nombres: "Ricardo",
+        apellidos: "Gareca",
         tipo_documento: "dni",
         nro_documento: "88888888",
         correo: "user2@ulima.edu.pe",
         contrasenha: "user2",
-        foto: "/tulio.jpg"
+        foto: "/gareca.png"
       }
     ]
     

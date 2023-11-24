@@ -14,7 +14,7 @@ const port = 3080
 
 //Esta es la parte del Middleware
 app.use(express.static(path.join(__dirname, './static')));
-app.use(bodyParser.json());
+app.use(bodyParser.json({limit: '50mb'}));
 
 // use
 app.use('/api/prueba',prueba)

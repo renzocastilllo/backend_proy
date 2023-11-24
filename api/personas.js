@@ -46,7 +46,6 @@ ruta.put('/modificar2', async (req, res) => {
     const datosModificados = req.body;
     
     const persona = await db.persona.findByPk(id);
-    // Actualizar los datos de la persona en la base de datos
     await persona.update({...datosModificados});
     return res.json({ mensaje: 'Persona modificada correctamente' });
 

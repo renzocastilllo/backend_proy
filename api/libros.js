@@ -147,7 +147,6 @@ ruta.put('/modificar', async (req, res) => {
     const datosModificados = req.body;
     
     const libro = await db.libro.findByPk(id);
-    // Actualizar los datos del libro en la base de datos
     await libro.update({...datosModificados});
     return res.json({ mensaje: 'Libro modificado correctamente' });
 
