@@ -1,0 +1,8 @@
+BACK:
+npm install express body-parser path
+
+npm install pg pg-hstore sequelize
+npm install sequelize-cli -g
+
+FRONT:
+npm install express http-proxy-middleware

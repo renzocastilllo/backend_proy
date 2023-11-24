@@ -1,3 +1,4 @@
+npx sequelize init
 npx sequelize db:create
 npx sequelize model:create --name user --attributes name:string  (Name:string es lo que se poner para llenar la tabla de BD)
 
@@ -22,3 +23,28 @@ npx sequelize db:migrate npx sequelize-cli db:seed:all
 \dt   -- Lista las tablas en el esquema actual
 
 ctrl + D salgo de pgsql
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+AGREGAR DATA A LA TABLA:
+curl -X POST -H "Content-Type:application/json" -d @data.json http://localhost:xxxx/api/****/insertaBD
+
+CARGAR DATA JSON:
+\COPY temp(data) FROM 'C:\"ruta"\archivo.json';
+
+INSERTAR DATA.JSON A LA TABLA:
+INSERT INTO xxxx SELECT (data->>'id')::integer ,data->>'xxxx',data->>'attribute1',data->>'attribute2',data->>'attributeX',CURRENT_TIMESTAMP,CURRENT_TIMESTAMP FROM temp;
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////
+ASSOCIATIONS:
+
+1. crear migrates
+npxm sequelize migration:generate --name add-1-association
+npxm sequelize migration:generate --name add-2-association
+
+2. cargar data csv
+copy 1(id,att2) from 'C:\"ruta"\1.csv' DELIMITTER ';' CSV HEADER;
+copy 2(id,att2,att3,att4) from 'C:\"ruta"\2.csv' DELIMITTER ';' CSV HEADER;
+
+3. mostrar data
+curl -X GET -H "Content-Type:application/json" http://localhost:xxxx/api/****/d1
+(se debe crear las relaciones previante en 'models')
