@@ -16,30 +16,6 @@ module.exports = {
     
     [
       {
-        fecha_inicio: new Date("2023-09-01"),
-        fecha_final: new Date("2023-09-11"),
-        persona_id: "2",
-        libro_id: "1"
-      },
-      {
-        fecha_inicio: new Date("2023-09-12"),
-        fecha_final: new Date("2023-09-22"),
-        persona_id: "2",
-        libro_id: "2"
-      },
-      {
-        fecha_inicio: new Date("2023-09-23"),
-        fecha_final: new Date("2023-10-03"),
-        persona_id: "2",
-        libro_id: "1"
-      },
-      {
-        fecha_inicio: new Date("2023-10-04"),
-        fecha_final: new Date("2023-10-14"),
-        persona_id: "3",
-        libro_id: "2"
-      },
-      {
         fecha_inicio: new Date("2023-11-15"),
         fecha_final: new Date("2023-12-10"),
         persona_id: "3",
