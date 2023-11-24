@@ -1,0 +1,24 @@
+npx sequelize db:create
+npx sequelize model:create --name user --attributes name:string  (Name:string es lo que se poner para llenar la tabla de BD)
+
+npx sequelize db:migrate (Agarra todo los modelos para que se migre y cree la tabla en la base de datos)
+
+Iniciar postgres:
+initdb -U postgres -A password -E utf8 -W -D "C:\Users\Rubenqc\Desktop\BD\DATA"
+pg_ctl -D "C:\Users\Rubenqc\Desktop\BD\DATA" -l "C:\Users\Rubenqc\Desktop\BD\LOG\log.txt" start
+psql -U postgres
+
+Para crear, rellenar la base de datos y ejecutar el servidor: 
+npx sequelize db:create
+npx sequelize db:migrate
+npx sequelize-cli db:seed:all
+npm run dev
+
+PASOS A HACER INICIAR SERVIDOR, NPM INSTALL AMBOS , npx sequelize db:create
+npx sequelize db:migrate npx sequelize-cli db:seed:all
+
+\l  
+\dn   -- Lista los esquemas
+\dt   -- Lista las tablas en el esquema actual
+
+ctrl + D salgo de pgsql
