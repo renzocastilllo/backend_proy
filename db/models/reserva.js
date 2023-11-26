@@ -11,10 +11,13 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
+      this.belongsTo(models.persona, {as:'reservante', foreignKey:'persona_id'})
+      this.belongsTo(models.libro, {as:'reservado', foreignKey:'libro_id'})
     }
   }
   reserva.init({
-    nombre: DataTypes.STRING
+    fecha_inicio: DataTypes.DATE,
+    fecha_final: DataTypes.DATE
   }, {
     sequelize,
     modelName: 'reserva',
