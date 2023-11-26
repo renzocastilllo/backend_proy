@@ -1,47 +1,24 @@
-const express = require('express')
-const ruta = express.Router()
-const db = require('../db/models/index.js')
+const express = require('express');
+const ruta = express.Router();
+const db = require('../db/models/index.js');
 const { Op } = require("sequelize");
 
 ruta.get('/busqueda', async (req, res) => {
+    const { keyword = '', type = '', filters = [], page = '' } = req.query;
+    const pageSize = 5;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
 
-    // Obtener parametros de busqueda
-    let obj = req.query
-    let keyword = obj.keyword != '' ? obj.keyword : ''
-    let type = obj.type != '' ? obj.type : ''
-    let filters = obj.filters != '' ? obj.filters.split(',') : []
-
-    let page = obj.page != '' ? obj.page : '' // de mi req llamos a despues del "?"
-    let pageSize = 5
-    // Necesito saber desde donde inicia la pagina y donde 
-    let start = (page - 1) * pageSize // algoritmo para saber el punto de inicio
-    let end = start + pageSize
-
-    console.log(req.query)
-    console.log(filters)
-
-    // Realizar consulta se libros segun parametros, incluyendo reservas
-    let libros = await db.libro.findAll({
+    const libros = await db.libro.findAll({
         order: [['id', 'ASC']],
         where: {
             [Op.or]: {
-                titulo: {
-                    [Op.iLike]: filters.includes('titulo') ? `%${keyword}%` : 'sdjafdjhbkfalhblhb'
-                },
-                autor: {
-                    [Op.iLike]: filters.includes('autor') ? `%${keyword}%` : '&&&&&&&&&&'
-                },
-                topicos: {
-                    [Op.iLike]: filters.includes('genero') ? `%${keyword}%` : '&&&&&&&.l.&&&&&'
-                },
-                isbn: {
-                    [Op.iLike]: filters.includes('isbn') ? `%${keyword}%` : '&&&&&°-°&&&&&&&&&'
-                },
-            }
-            ,
-            tipo: {
-                [Op.iLike]: `%${type}%`
-            }
+                titulo: { [Op.iLike]: filters.includes('titulo') ? `%${keyword}%` : 'título_default' },
+                autor: { [Op.iLike]: filters.includes('autor') ? `%${keyword}%` : 'autor_default' },
+                topicos: { [Op.iLike]: filters.includes('genero') ? `%${keyword}%` : 'género_default' },
+                isbn: { [Op.iLike]: filters.includes('isbn') ? `%${keyword}%` : 'isbn_default' },
+            },
+            tipo: { [Op.iLike]: `%${type}%` }
         },
         include: {
             model: db.reserva,
@@ -49,144 +26,90 @@ ruta.get('/busqueda', async (req, res) => {
             attributes: ['id', 'fecha_final'],
             order: [['id', 'DESC']]
         }
-    })
+    });
 
-
-    // Calcular si el libro esta disponible o no
-    let rpta = []
-    let hoy = new Date(obtenerFechaActual())
-    libros.forEach(item => {
-        let disponibilidad = true;
-        console.log(item.id, item.titulo)
-        if (item.reservado) {
-            //item.reservado = item.reservado.sort((a, b) => b.id - a.id);
-            item.reservado.forEach(i => {
-                console.log(" ", i.id, i.fecha_final)
-                if (new Date(i.fecha_final) > hoy) {
-                    disponibilidad = false
-                }
-            })
-            console.log("   Disponible: ", disponibilidad)
-        }
-        rpta.push({ ...item.get({ plain: true }), disponible: disponibilidad })
-    })
-
-    // PARA LA PAGINACION
-    // libros == data
-    const totalItems = rpta.length
-    const totalPages = Math.ceil(totalItems / pageSize)
-    let itemL = rpta
-    let itemsAPaginar = itemL.slice(start, end)
-    // Convertir a JSON
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
+    const currentDate = new Date();
+    const response = libros.map(libro => ({
+        ...libro.get({ plain: true }),
+        disponible: libro.reservado.some(reserva => new Date(reserva.fecha_final) > currentDate)
+    })).slice(start, end);
 
     return res.status(200).json({
         page,
-        totalPages,
+        totalPages: Math.ceil(response.length / pageSize),
         pageSize,
-        totalItems,
-        items: JSON.parse(itemsAPaginar)
-    }
-    )
-
+        totalItems: response.length,
+        items: response
+    });
 });
 
-//revisar grab para corroborar
-
 ruta.get('/leer', async (req, res) => {
-    let id = req.query.id
-    console.log(id)
-    let libro = await db.libro.findByPk(id, {
-        include : {
+    const { id } = req.query;
+    const libro = await db.libro.findByPk(id, {
+        include: {
             model: db.reserva,
             as: 'reservado',
             attributes: ['id', 'fecha_final'],
             order: [['id', 'DESC']]
         }
-    })
-    // Calcular si el libro esta disponible o no
-    let rpta = {}
-    let hoy = new Date(obtenerFechaActual())
-        let disponibilidad = true;
-        if (libro.reservado) {
-            
-            libro.reservado.forEach(i => {
-                console.log(" ", i.id, i.fecha_final)
-                if (new Date(i.fecha_final) > hoy) {
-                    disponibilidad = false
-                }
-            })
-            console.log("   Disponible: ", disponibilidad)
-        }
-        rpta = ({ ...libro.get({ plain: true }), disponible: disponibilidad })
-    
-    res.status(200).json(rpta);
+    });
 
+    const currentDate = new Date();
+    const response = {
+        ...libro.get({ plain: true }),
+        disponible: libro.reservado.some(reserva => new Date(reserva.fecha_final) > currentDate)
+    };
+
+    res.status(200).json(response);
 });
 
 ruta.post('/agregar', async (req, res) => {
-    let obj = req.body
-    console.log(obj)
-    let rpta = await db.libro.create(obj)
-    res.status(200).json(rpta);
+    const response = await db.libro.create(req.body);
+    res.status(200).json(response);
 });
 
 ruta.delete('/eliminar', async (req, res) => {
-    let req_id = req.query.id
-    let rpta = await db.libro.destroy({
-        where: {
-            id: req_id
-        },
-    })
+    const { id } = req.query;
+    const response = await db.libro.destroy({ where: { id } });
 
-    res.status(200).json(rpta);
+    res.status(200).json(response);
 });
 
 ruta.put('/modificar', async (req, res) => {
-    const id = req.query.id;
-    const datosModificados = req.body;
-    
+    const { id } = req.query;
     const libro = await db.libro.findByPk(id);
-    await libro.update({...datosModificados});
-    return res.json({ mensaje: 'Libro modificado correctamente' });
-
+    await libro.update(req.body);
+    res.json({ mensaje: 'Libro modificado correctamente' });
 });
 
-ruta.get('/MasPedidos', async (req, res)=>{
-    let obj = req.query
-    let page = obj.page
-    let pageSize = 2
-    let start= (page -1)* pageSize 
-    let end = start + pageSize
+ruta.get('/MasPedidos', async (req, res) => {
+    const { page } = req.query;
+    const pageSize = 2;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
 
-    let libros = await db.libro.findAll({
-        where:{
-            contador:{ [Op.gt]: 0 }
-        },
-        order :[['contador', 'DESC']],
-    })
+    const librosPopulares = await db.libro.findAll({
+        where: { contador: { [Op.gt]: 0 } },
+        order: [['contador', 'DESC']],
+    });
 
-    const totalItems = libros.length
-    const totalPages = Math.ceil(totalItems/pageSize)
-    let itemL = libros
-    let itemsAPaginar = itemL.slice(start,end)
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
-  
-    return res.status(200).json( {
-          page,
-          totalPages,
-          pageSize,
-          totalItems,
-          items: JSON.parse(itemsAPaginar)
-          }
-    )
-})
+    const response = librosPopulares.slice(start, end);
 
-function obtenerFechaActual() {
-    const hoy = new Date();
-    const year = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoy.getDate()).padStart(2, '0');
-    return `${year}-${mes}-${dia}`;
+    res.status(200).json({
+        page,
+        totalPages: Math.ceil(response.length / pageSize),
+        pageSize,
+        totalItems: response.length,
+        items: response
+    });
+});
+
+function getCurrentDate() {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
 }
-module.exports = ruta
+
+module.exports = ruta;
