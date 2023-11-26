@@ -1,185 +1,79 @@
-const express = require('express')
-const ruta = express.Router()
-const db = require('../db/models/index.js')
+const express = require('express');
+const ruta = express.Router();
+const db = require('../db/models/index.js');
 
 ruta.post('/reservar', async (req, res) => {
-    let obj = req.body
-    console.log(obj)
-    let rpta = await db.reserva.create( obj )
-    
-    let libro = await db.libro.findByPk(obj.libro_id)
-    await libro.increment('contador', { by: 1 })
-    let persona = await db.persona.findByPk(obj.persona_id)
-    await libro.update({ultimo_reservante : persona.nombres})
+    const { libro_id, persona_id } = req.body;
+    const rpta = await db.reserva.create(req.body);
+
+    const [libro, persona] = await Promise.all([
+        db.libro.findByPk(libro_id),
+        db.persona.findByPk(persona_id)
+    ]);
+
+    await Promise.all([
+        libro.increment('contador', { by: 1 }),
+        libro.update({ ultimo_reservante: persona.nombres })
+    ]);
 
     res.status(200).json(rpta);
 });
 
-ruta.get('/persona', async (req, res) => {
-    let obj = req.query
-    let id = obj.id
+const getPagedReservas = async (req, res, order, where = {}) => {
+    const { id, page = 1 } = req.query;
+    const pageSize = 2;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
 
-    let page = obj.page 
-    let pageSize = 4
-    let start= (page -1)* pageSize 
-    let end = start + pageSize
+    const reservas = await db.reserva.findAll({
+        order,
+        where: { persona_id: id, ...where },
+        include: { model: db.libro, as: 'reservado' }
+    });
 
-    let reservas = await db.reserva.findAll({
-        order :[['id', 'DESC']],
-        where : {
-            persona_id : id
-        },
-        include : {
-            model: db.libro,
-            as: 'reservado',
-        }
-    })
+    const totalItems = reservas.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const itemsAPaginar = JSON.stringify(reservas.slice(start, end));
 
-    const totalItems = reservas.length
-    const totalPages = Math.ceil(totalItems/pageSize)
-    let itemL = reservas
-    let itemsAPaginar = itemL.slice(start,end)
+    return res.status(200).json({ page, totalPages, pageSize, totalItems, items: JSON.parse(itemsAPaginar) });
+};
 
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
+ruta.get('/persona', async (req, res) => getPagedReservas(req, res, [['id', 'DESC']]));
 
-    return res.status(200).json( {
-        page,
-        totalPages,
-        pageSize,
-        totalItems,
-        items: JSON.parse(itemsAPaginar)
-        }
-    )
+ruta.get('/leer', async (req, res) => res.status(200).json(await db.reserva.findByPk(req.query.id, {
+    include: [{ model: db.libro, as: 'reservado' }, { model: db.persona, as: 'reservante' }]
+})));
 
+ruta.get('/ultimas', async (req, res) => getPagedReservas(req, res, [['fecha_inicio', 'DESC']]));
+
+ruta.get('/ultimasAdmin', async (req, res) => getPagedReservas(req, res, [['fecha_inicio', 'DESC']], {}));
+
+ruta.get('/proximos', async (req, res) => {
+    const { id, page = 1 } = req.query;
+    const pageSize = 2;
+    const start = (page - 1) * pageSize;
+    const end = start + pageSize;
+
+    const reservas = await db.reserva.findAll({
+        order: [['fecha_final', 'ASC']],
+        where: { persona_id: id },
+        include: { model: db.libro, as: 'reservado' }
+    });
+
+    const hoy = new Date(obtenerFechaActual());
+    const rpta = reservas.filter(item => item.fecha_final >= hoy);
+
+    const totalItems = rpta.length;
+    const totalPages = Math.ceil(totalItems / pageSize);
+    const itemsAPaginar = JSON.stringify(rpta.slice(start, end));
+
+    return res.status(200).json({ page, totalPages, pageSize, totalItems, items: JSON.parse(itemsAPaginar) });
 });
-  
-ruta.get('/leer', async (req, res) => {
-    let id = req.query.id
-    let rpta = await db.reserva.findByPk(id, {
-        include : {
-            model: db.libro,
-            as: 'reservado'
-        }, include: {
-            model: db.persona,
-            as: 'reservante'
-        }
-    })
-    res.status(200).json(rpta);
-});
-
-ruta.get('/ultimas', async(req,res)=>{
-    let obj = req.query
-    let id = obj.id
-    let page = obj.page
-    let pageSize = 2
-    let start= (page -1)* pageSize 
-    let end = start + pageSize
-    let reservas = await db.reserva.findAll({
-        order :[['fecha_inicio', 'DESC']],
-        where : {
-          persona_id : id
-        },
-        include : {
-          model: db.libro,
-          as: 'reservado',
-        }
-    })
-    const totalItems = reservas.length
-    const totalPages = Math.ceil(totalItems/pageSize)
-    let itemL = reservas
-    let itemsAPaginar = itemL.slice(start,end)
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
-  
-    return res.status(200).json( {
-          page,
-          totalPages,
-          pageSize,
-          totalItems,
-          items: JSON.parse(itemsAPaginar)
-          }
-    )
-})
-
-ruta.get('/ultimasAdmin', async(req,res)=>{
-    let obj = req.query
-    let page = obj.page
-    let pageSize = 2
-    let start= (page -1)* pageSize 
-    let end = start + pageSize
-    let reservas = await db.reserva.findAll({
-        order :[['fecha_inicio', 'DESC']],
-        include : {
-          model: db.libro,
-          as: 'reservado',
-        }
-    })
-    const totalItems = reservas.length
-    const totalPages = Math.ceil(totalItems/pageSize)
-    let itemL = reservas
-    let itemsAPaginar = itemL.slice(start,end)
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
-  
-    return res.status(200).json( {
-          page,
-          totalPages,
-          pageSize,
-          totalItems,
-          items: JSON.parse(itemsAPaginar)
-          }
-    )
-})
-
-ruta.get('/proximos', async(req,res)=>{
-    let obj = req.query
-    let id = obj.id
-    let page = obj.page
-    let pageSize = 2
-    let start= (page -1)* pageSize 
-    let end = start + pageSize
-    let reservas = await db.reserva.findAll({
-        order :[['fecha_final', 'ASC']],
-        where : {
-          persona_id : id
-        },
-        include : {
-          model: db.libro,
-          as: 'reservado',
-        }
-    })
-
-    let rpta = []
-    let hoy = new Date(obtenerFechaActual())
-    reservas.forEach(item => {
-        let enFecha = true;
-        if(item.fecha_final < hoy){
-            enFecha = false;
-        }
-        if (enFecha){
-            rpta.push(item)
-        }
-    })
-    const totalItems = rpta.length
-    const totalPages = Math.ceil(totalItems/pageSize)
-    let itemL = rpta
-    let itemsAPaginar = itemL.slice(start,end)
-    itemsAPaginar = JSON.stringify(itemsAPaginar)
-  
-    return res.status(200).json( {
-          page,
-          totalPages,
-          pageSize,
-          totalItems,
-          items: JSON.parse(itemsAPaginar)
-          }
-    )
-})
 
 function obtenerFechaActual() {
     const hoy = new Date();
-    const year = hoy.getFullYear();
-    const mes = String(hoy.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoy.getDate()).padStart(2, '0');
+    const [year, mes, dia] = [hoy.getFullYear(), String(hoy.getMonth() + 1).padStart(2, '0'), String(hoy.getDate()).padStart(2, '0')];
     return `${year}-${mes}-${dia}`;
 }
 
-module.exports = ruta
+module.exports = ruta;
